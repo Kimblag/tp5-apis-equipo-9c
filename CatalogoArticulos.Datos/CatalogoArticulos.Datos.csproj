@@ -44,6 +44,8 @@
     <Compile Include="AccesoDatos.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repositorios\RepositorioArticulo.cs" />
+    <Compile Include="Repositorios\RepositorioCategoria.cs" />
+    <Compile Include="Repositorios\RepositorioMarca.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CatalogoArticulos.Dominio\CatalogoArticulos.Dominio.csproj">

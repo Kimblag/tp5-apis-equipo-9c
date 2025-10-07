@@ -1,4 +1,4 @@
-﻿using CatalogoProductos.Dominio.Entidades;
+﻿using CatalogoArticulos.Dominio.Entidades;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -99,15 +99,27 @@ namespace CatalogoArticulos.Datos.Repositorios
                 diccionarioArticulos.Add(articulo.Id, articulo);
             }
 
-            string idsArticulos = string.Join(",", ids);
+            // usamos placeholders para poder setear parámetros, esto es mas seguro que usar interpolacion Hay que evitar sql injection
+            List<string> placeholders = new List<string>();
+
+            for (int i = 0; i < articulos.Count; i++)
+            {
+                placeholders.Add($"@idArticulo{i}");
+            }
+
+            string listaPlaceholders = string.Join(",", placeholders);
 
             using (AccesoDatos datos = new AccesoDatos())
             {
                 SqlDataReader lector = null;
                 try
                 {
-                    datos.DefinirConsulta($"SELECT Id, IdArticulo, ImagenUrl FROM IMAGENES WHERE IdArticulo IN ({idsArticulos})");
+                    datos.DefinirConsulta($"SELECT Id, IdArticulo, ImagenUrl FROM IMAGENES WHERE IdArticulo IN ({listaPlaceholders})");
 
+                    for (int i = 0; i < articulos.Count; i++)
+                    {
+                        datos.SetearParametro($"@idArticulo{i}", articulos[i].Id);
+                    }
                     lector = datos.EjecutarConsulta();
 
                     while (lector.Read())
@@ -219,15 +231,12 @@ namespace CatalogoArticulos.Datos.Repositorios
         {
             using (AccesoDatos datos = new AccesoDatos())
             {
-                // usamos transaccion para evitar inconsistencias; todo o nada (como lo visto en BBDDII)
-                SqlTransaction transaccion = null;
                 int idArticulo = 0;
 
                 try
                 {
-                    datos.Conexion.Open();
-                    transaccion = datos.Conexion.BeginTransaction();
-                    datos.Comando.Transaction = transaccion;
+                    // usamos transaccion para evitar inconsistencias; todo o nada (como lo visto en BBDDII)
+                    datos.IniciarTransaccion();
 
                     datos.DefinirConsulta(@"
                                 INSERT INTO ARTICULOS (Codigo, Nombre, Descripcion, IdMarca, IdCategoria, Precio) 
@@ -265,20 +274,13 @@ namespace CatalogoArticulos.Datos.Repositorios
                         }
                     }
 
-                    transaccion.Commit(); // confirmar el commit
+                    datos.ConfirmarTransaccion(); // confirmar cambios
                     return idArticulo;
                 }
                 catch (Exception)
                 {
-                    try
-                    {
-                        // hacemos rollback en caso de fallo
-                        transaccion?.Rollback(); // deshacemos TODO (artículo e imágenes).
-                    }
-                    catch (Exception exRollback)
-                    {
-                        throw new Exception("Error al intentar deshacer la transacción de alta.", exRollback);
-                    }
+                    // hacemos rollback en caso de fallo
+                    datos.RollbackTransaccion(); // deshacemos TODO (artículo e imágenes).
                     throw;
                 }
             }
@@ -288,13 +290,9 @@ namespace CatalogoArticulos.Datos.Repositorios
         {
             using (AccesoDatos datos = new AccesoDatos())
             {
-                SqlTransaction transaccion = null;
-
                 try
                 {
-                    datos.Conexion.Open();
-                    transaccion = datos.Conexion.BeginTransaction();
-                    datos.Comando.Transaction = transaccion;
+                    datos.IniciarTransaccion();
 
                     datos.LimpiarParametros();
                     datos.DefinirConsulta(@"
@@ -343,12 +341,24 @@ namespace CatalogoArticulos.Datos.Repositorios
 
                     if (urlsAEliminar.Count > 0)
                     {
-                        // generamos una lista de urls a eliminar para interpolar en la query de eliminar
-                        string listaUrls = string.Join("','", urlsAEliminar);
+                        // generamos una lista de placeholders para las urls, así evitamos interpolar porque es peligroso por el sql injection
+                        List<string> placeholders = new List<string>();
+                        for (int i = 0; i < urlsAEliminar.Count; i++)
+                        {
+                            placeholders.Add($"@url{i}");
+                        }
+                        string listaPlaceholders = string.Join(",", placeholders);
 
                         datos.LimpiarParametros();
-                        datos.DefinirConsulta($"DELETE FROM IMAGENES WHERE IdArticulo = @IdArticulo AND ImagenUrl IN ('{listaUrls}')");
+                        datos.DefinirConsulta($"DELETE FROM IMAGENES WHERE IdArticulo = @IdArticulo AND ImagenUrl IN ({listaPlaceholders})");
+
+                        // seteamos los parámetros de manera segura
                         datos.SetearParametro("@IdArticulo", articuloEditar.Id);
+                        for (int i = 0; i < urlsAEliminar.Count; i++)
+                        {
+                            datos.SetearParametro($"@url{i}", urlsAEliminar[i]);
+                        }
+
                         datos.EjecutarAccion();
                     }
 
@@ -365,18 +375,11 @@ namespace CatalogoArticulos.Datos.Repositorios
                         }
                     }
 
-                    transaccion.Commit();
+                    datos.ConfirmarTransaccion();
                 }
                 catch (Exception)
                 {
-                    try
-                    {
-                        transaccion?.Rollback();
-                    }
-                    catch (Exception exRollback)
-                    {
-                        throw new Exception("Error al intentar deshacer la transacción de modificación.", exRollback);
-                    }
+                    datos.RollbackTransaccion();
                     throw;
                 }
             }
@@ -413,13 +416,10 @@ namespace CatalogoArticulos.Datos.Repositorios
         {
             using (AccesoDatos datos = new AccesoDatos())
             {
-                SqlTransaction transaccion = null;
 
                 try
                 {
-                    datos.Conexion.Open();
-                    transaccion = datos.Conexion.BeginTransaction();
-                    datos.Comando.Transaction = transaccion;
+                   datos.IniciarTransaccion();
 
                     datos.LimpiarParametros();
                     datos.DefinirConsulta("DELETE FROM IMAGENES WHERE IdArticulo = @IdArticulo");
@@ -431,18 +431,11 @@ namespace CatalogoArticulos.Datos.Repositorios
                     datos.SetearParametro("@IdArticulo", idArticulo);
                     datos.EjecutarAccion();
 
-                    transaccion.Commit();
+                    datos.ConfirmarTransaccion();
                 }
                 catch (Exception)
                 {
-                    try
-                    {
-                        transaccion?.Rollback();
-                    }
-                    catch (Exception exRollback)
-                    {
-                        throw new Exception("Error al intentar deshacer la transacción de eliminación.", exRollback);
-                    }
+                    datos.RollbackTransaccion();
                     throw;
                 }
             }
@@ -467,6 +460,27 @@ namespace CatalogoArticulos.Datos.Repositorios
 
                         datos.EjecutarAccion();
                     }
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+            }
+        }
+
+
+        public bool ExisteCodigoArticulo(string codigo)
+        {
+            using (AccesoDatos datos = new AccesoDatos())
+            {
+                try
+                {
+                    datos.DefinirConsulta("SELECT COUNT(1) FROM ARTICULOS WHERE Codigo = @Codigo");
+                    datos.SetearParametro("@Codigo", codigo);
+
+                    int existe = datos.EjecutarAccionEscalar();
+
+                   return existe != 0; 
                 }
                 catch (Exception)
                 {

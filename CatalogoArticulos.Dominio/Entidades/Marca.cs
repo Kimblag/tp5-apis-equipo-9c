@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CatalogoProductos.Dominio.Entidades
+namespace CatalogoArticulos.Dominio.Entidades
 {
     public class Marca
     {

@@ -10,11 +10,9 @@ namespace CatalogoArticulos.Datos
     public class AccesoDatos : IDisposable
     {
 
-        public SqlConnection Conexion { get { return conexion; } }
-        public SqlCommand Comando { get { return comando; } }
-
         private SqlConnection conexion;
         private SqlCommand comando;
+        private SqlTransaction transaccion;
 
         public AccesoDatos()
         {
@@ -88,6 +86,46 @@ namespace CatalogoArticulos.Datos
         public void LimpiarParametros()
         {
             comando.Parameters.Clear();
+        }
+
+        public void IniciarTransaccion()
+        {
+            try
+            {
+                if (conexion.State == ConnectionState.Closed) conexion.Open();
+                transaccion = conexion.BeginTransaction();
+                comando.Transaction = transaccion;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public void ConfirmarTransaccion()
+        {
+            try
+            {
+                transaccion.Commit();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
+        public void RollbackTransaccion()
+        {
+            try
+            {
+                transaccion?.Rollback();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
 
         public void Dispose()

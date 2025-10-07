@@ -1,7 +1,7 @@
 ﻿using System.Web;
 using System.Web.Optimization;
 
-namespace CatalogoProductos.API
+namespace CatalogoArticulos.API
 {
     public class BundleConfig
     {

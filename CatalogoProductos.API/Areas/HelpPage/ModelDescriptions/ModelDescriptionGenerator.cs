@@ -11,7 +11,7 @@ using System.Web.Http.Description;
 using System.Xml.Serialization;
 using Newtonsoft.Json;
 
-namespace CatalogoProductos.API.Areas.HelpPage.ModelDescriptions
+namespace CatalogoArticulos.API.Areas.HelpPage.ModelDescriptions
 {
     /// <summary>
     /// Generates model descriptions for given types.

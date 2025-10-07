@@ -74,5 +74,17 @@ namespace CatalogoArticulo.Comun
             return texto.All(c => char.IsLetter(c) || char.IsWhiteSpace(c));
         }
 
+
+        public static bool EsPrecioValido(decimal valor)
+        {
+            return valor >= 0;
+        }
+
+        public static bool EsUrlValida(string texto)
+        {
+            string patron = @"^(http|https)://([\w-]+\.)+[\w-]+(/[\w- ./?%&=]*)?$";
+            return Regex.IsMatch(texto, patron);
+        }
+
     }
 }
