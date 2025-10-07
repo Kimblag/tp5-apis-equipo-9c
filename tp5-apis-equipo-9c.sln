@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36518.9 d17.14
+VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogoArticulos.API", "CatalogoProductos.API\CatalogoArticulos.API.csproj", "{A31B7C52-9C99-4535-9F9B-DD8EC0F67F57}"
 EndProject
@@ -18,6 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogoArticulos.DTOs", "CatalogoArticulos.DTOs\CatalogoArticulos.DTOs.csproj", "{3F158226-918C-4AC6-84B5-88478D7E1625}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{FC88E2AC-2954-4E5F-9A44-F0C5C109DDBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FC88E2AC-2954-4E5F-9A44-F0C5C109DDBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FC88E2AC-2954-4E5F-9A44-F0C5C109DDBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F158226-918C-4AC6-84B5-88478D7E1625}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F158226-918C-4AC6-84B5-88478D7E1625}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F158226-918C-4AC6-84B5-88478D7E1625}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F158226-918C-4AC6-84B5-88478D7E1625}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
