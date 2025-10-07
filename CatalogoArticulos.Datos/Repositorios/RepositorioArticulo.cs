@@ -475,8 +475,8 @@ namespace CatalogoArticulos.Datos.Repositorios
             {
                 try
                 {
-                    datos.DefinirConsulta("SELECT COUNT(1) FROM ARTICULOS WHERE Codigo = @Codigo");
-                    datos.SetearParametro("@Codigo", codigo);
+                    datos.DefinirConsulta("SELECT COUNT(1) FROM ARTICULOS WHERE UPPER(Codigo) = UPPER(@Codigo)");
+                    datos.SetearParametro("@Codigo", codigo.ToUpper());
 
                     int existe = datos.EjecutarAccionEscalar();
 
