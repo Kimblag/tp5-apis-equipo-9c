@@ -305,6 +305,14 @@
     <Content Include="Scripts\jquery-3.7.0.min.map" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CatalogoArticulo.Comun\CatalogoArticulos.Comun.csproj">
+      <Project>{3025903d-ba53-4977-9a48-2dca5e3c91ea}</Project>
+      <Name>CatalogoArticulos.Comun</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CatalogoArticulos.Dominio\CatalogoArticulos.Dominio.csproj">
+      <Project>{aaeab28a-a20c-428e-91d7-5e9524665284}</Project>
+      <Name>CatalogoArticulos.Dominio</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CatalogoArticulos.DTOs\CatalogoArticulos.DTOs.csproj">
       <Project>{3f158226-918c-4ac6-84b5-88478d7e1625}</Project>
       <Name>CatalogoArticulos.DTOs</Name>

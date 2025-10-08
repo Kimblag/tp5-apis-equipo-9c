@@ -1,5 +1,4 @@
 ﻿using CatalogoArticulo.Comun;
-using CatalogoArticulos.API.DTOs;
 using CatalogoArticulos.Datos.Repositorios;
 using CatalogoArticulos.Dominio.Entidades;
 using System;
@@ -23,12 +22,9 @@ namespace CatalogoArticulos.Negocio
             _repositorioCategoria = new RepositorioCategoria();
         }
 
-
-        public int Guardar(ArticuloGuardarDTO nuevoDTO)
+        public int Guardar(Articulo nuevoArticulo)
         {
-            ValidarDatos(nuevoDTO);
-            ValidarReglasNegocio(nuevoDTO);
-            Articulo nuevoArticulo = MapearADominio(nuevoDTO);
+            ValidarReglasNegocioArticulo(nuevoArticulo);
 
             try
             {
@@ -40,60 +36,67 @@ namespace CatalogoArticulos.Negocio
             }
         }
 
-        private Articulo MapearADominio(ArticuloGuardarDTO nuevoDTO)
+        public void GuardarImagenes(int idArticulo, List<Imagen> urlsImagenes)
         {
-            Marca marcaArticulo = _repositorioMarca.ObtenerPorID(nuevoDTO.IdMarca);
-            Categoria categoriaArticulo = _repositorioCategoria.ObtenerPorID(nuevoDTO.IdCategoria);
-            List<Imagen> imagenes = new List<Imagen>();
-
-            if (nuevoDTO.UrlImagenes != null && nuevoDTO.UrlImagenes.Count > 0)
+            ValidarReglasNegocioImagen(idArticulo, urlsImagenes);
+            try
             {
-                foreach (string url in nuevoDTO.UrlImagenes)
+                _repositorioArticulo.GuardarImagenes(idArticulo, urlsImagenes);
+                return;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        private void ValidarReglasNegocioArticulo(Articulo nuevoArticulo)
+        {
+            if (!_repositorioMarca.Existe(nuevoArticulo.Marca.Id)) throw new InvalidOperationException("La marca indicada no existe.");
+            if (!_repositorioCategoria.Existe(nuevoArticulo.Categoria.Id)) throw new InvalidOperationException("La categoría indicada no existe.");
+            if (_repositorioArticulo.ExisteCodigoArticulo(nuevoArticulo.Codigo)) throw new InvalidOperationException("Ya existe un artículo con el código indicado.");
+        }
+
+        private void ValidarReglasNegocioImagen(int idArticulo, List<Imagen> imagenes)
+        {
+            if (!_repositorioArticulo.ExisteIdArticulo(idArticulo))
+                throw new InvalidOperationException("El artículo ingresado no existe.");
+
+            List<string> urlsActuales = _repositorioArticulo.ObtenerUrlsActuales(idArticulo);
+
+            List<string> urlsVistas = new List<string>();
+            List<string> urlsDuplicadasInternas = new List<string>();
+            List<string> urlsDuplicadasEnBD = new List<string>();
+
+            foreach (Imagen img in imagenes)
+            {
+                if (img.Url == null) continue;
+
+                //verificar que no envíen las urls repetidas en la misma lista
+                if (urlsVistas.Contains(img.Url))
+                    urlsDuplicadasInternas.Add(img.Url);
+                else
+                    urlsVistas.Add(img.Url);
+
+                // verificar que no envíen urls que ya existen en bd
+                foreach (string url in urlsActuales)
                 {
-                    Imagen imagenActual = new Imagen
+                    if (url == img.Url)
                     {
-                        Url = url
-                    };
-                    imagenes.Add(imagenActual);
+                        urlsDuplicadasEnBD.Add(img.Url);
+                        break;
+                    }
                 }
             }
 
-            Articulo nuevoArticulo = new Articulo
-            {
-                Codigo = nuevoDTO.Codigo,
-                Nombre = nuevoDTO.Nombre,
-                Descripcion = nuevoDTO.Descripcion,
-                Precio = nuevoDTO.Precio,
 
+            if (urlsDuplicadasInternas.Count > 0)
+                throw new InvalidOperationException("Las siguientes URLs están repetidas en la lista: " + string.Join(", ", urlsDuplicadasInternas));
 
-                Marca = marcaArticulo,
-                Categoria = categoriaArticulo,
-                Imagenes = imagenes ?? new List<Imagen>()
-            };
-            return nuevoArticulo;
+            if (urlsDuplicadasEnBD.Count > 0)
+                throw new InvalidOperationException("Las siguientes URLs ya existen para este artículo: " + string.Join(", ", urlsDuplicadasEnBD));
         }
 
-        private void ValidarReglasNegocio(ArticuloGuardarDTO nuevoDTO)
-        {
-            if (!_repositorioMarca.Existe(nuevoDTO.IdMarca)) throw new InvalidOperationException("La marca indicada no existe.");
-            if (!_repositorioCategoria.Existe(nuevoDTO.IdCategoria)) throw new InvalidOperationException("La categoría indicada no existe.");
-            if (_repositorioArticulo.ExisteCodigoArticulo(nuevoDTO.Codigo)) throw new InvalidOperationException("Ya existe un artículo con el código indicado.");
-        }
 
-        private void ValidarDatos(ArticuloGuardarDTO nuevoDTO)
-        {
-            if (!ValidadorCampos.EsTextoValido(nuevoDTO.Codigo, 1, 50)) throw new InvalidOperationException("El Código es obligatorio y debe tener entre 1 y 50 caracteres.");
-            if (!ValidadorCampos.EsTextoValido(nuevoDTO.Nombre, 3, 50)) throw new InvalidOperationException("El Nombre es obligatorio y debe tener entre 3 y 50 caracteres.");
-            // descripción es opcional
-            if (!string.IsNullOrEmpty(nuevoDTO.Descripcion) && !ValidadorCampos.EsTextoValido(nuevoDTO.Descripcion, 4, 150)) throw new InvalidOperationException("La descripción debe tener entre 4 y 50 caracteres.");
-            if (!ValidadorCampos.EsPrecioValido(nuevoDTO.Precio)) throw new InvalidOperationException("El Precio es obligatorio y no puede ser un valor negativo");
-            if (nuevoDTO.UrlImagenes != null && nuevoDTO.UrlImagenes.Count > 0)
-            {
-                foreach (string url in nuevoDTO.UrlImagenes)
-                {
-                    if (!ValidadorCampos.EsUrlValida(url)) throw new InvalidOperationException("Una de las URLs de imagen proporcionadas no tiene un formato válido.");
-                }
-            }
-        }
     }
 }

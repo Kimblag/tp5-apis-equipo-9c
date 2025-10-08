@@ -12,7 +12,7 @@ namespace CatalogoArticulos.Dominio.Entidades
         public string Codigo { get; set; }
         public string Nombre { get; set; }
         public string Descripcion { get; set; }
-        public decimal Precio { get; set; }
+        public decimal? Precio { get; set; }
 
         // Relaciones
         public Marca Marca{ get; set; }

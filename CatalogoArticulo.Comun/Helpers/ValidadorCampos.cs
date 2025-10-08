@@ -75,9 +75,12 @@ namespace CatalogoArticulo.Comun
         }
 
 
-        public static bool EsPrecioValido(decimal valor)
+        public static bool EsPrecioValido(decimal? valor)
         {
-            return valor >= 0;
+            bool esValido = true;
+            if (!valor.HasValue) esValido = false;
+            if (valor < 0) esValido = false;
+            return esValido;
         }
 
         public static bool EsUrlValida(string texto)

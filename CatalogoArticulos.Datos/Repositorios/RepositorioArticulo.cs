@@ -11,7 +11,6 @@ namespace CatalogoArticulos.Datos.Repositorios
 {
     public class RepositorioArticulo
     {
-
         public List<Articulo> Listar()
         {
             List<Articulo> articulos = new List<Articulo>();
@@ -82,7 +81,6 @@ namespace CatalogoArticulos.Datos.Repositorios
                 }
             }
         }
-
 
         private void CargarImagenes(List<Articulo> articulos)
         {
@@ -235,9 +233,6 @@ namespace CatalogoArticulos.Datos.Repositorios
 
                 try
                 {
-                    // usamos transaccion para evitar inconsistencias; todo o nada (como lo visto en BBDDII)
-                    datos.IniciarTransaccion();
-
                     datos.DefinirConsulta(@"
                                 INSERT INTO ARTICULOS (Codigo, Nombre, Descripcion, IdMarca, IdCategoria, Precio) 
                                 OUTPUT inserted.Id 
@@ -258,29 +253,10 @@ namespace CatalogoArticulos.Datos.Repositorios
                         throw new InvalidOperationException("No se pudo obtener el ID del artículo insertado.");
                     }
 
-                    if (nuevo.Imagenes != null && nuevo.Imagenes.Count > 0)
-                    {
-                        datos.LimpiarParametros();
-                        datos.DefinirConsulta("INSERT INTO IMAGENES (IdArticulo, ImagenUrl) VALUES (@IdArticulo, @ImagenUrl)");
-                        datos.SetearParametro("@IdArticulo", idArticulo);
-
-                        foreach (var imagen in nuevo.Imagenes)
-                        {
-                            datos.LimpiarParametros();
-                            datos.SetearParametro("@IdArticulo", idArticulo);
-                            datos.SetearParametro("@ImagenUrl", imagen.Url);
-
-                            datos.EjecutarAccion();
-                        }
-                    }
-
-                    datos.ConfirmarTransaccion(); // confirmar cambios
                     return idArticulo;
                 }
                 catch (Exception)
                 {
-                    // hacemos rollback en caso de fallo
-                    datos.RollbackTransaccion(); // deshacemos TODO (artículo e imágenes).
                     throw;
                 }
             }
@@ -294,8 +270,32 @@ namespace CatalogoArticulos.Datos.Repositorios
                 {
                     datos.IniciarTransaccion();
 
-                    datos.LimpiarParametros();
-                    datos.DefinirConsulta(@"
+                    ActualizarArticulo(datos, articuloEditar);
+
+                    List<string> urlsNuevas = new List<string>();
+                    if (articuloEditar.Imagenes != null)
+                    {
+                        foreach (var imagen in articuloEditar.Imagenes)
+                        {
+                            urlsNuevas.Add(imagen.Url);
+                        }
+                    }
+                    SincronizarImagenes(datos, articuloEditar.Id, urlsNuevas);
+
+                    datos.ConfirmarTransaccion();
+                }
+                catch
+                {
+                    datos.RollbackTransaccion();
+                    throw;
+                }
+            }
+        }
+
+        private void ActualizarArticulo(AccesoDatos datos, Articulo articulo)
+        {
+            datos.LimpiarParametros();
+            datos.DefinirConsulta(@"
                         UPDATE ARTICULOS SET 
                             Codigo = @Codigo, 
                             Nombre = @Nombre, 
@@ -305,121 +305,120 @@ namespace CatalogoArticulos.Datos.Repositorios
                             Precio = @Precio 
                         WHERE Id = @Id
                     ");
-                    datos.EjecutarAccion();
+            datos.SetearParametro("@Codigo", articulo.Codigo);
+            datos.SetearParametro("@Nombre", articulo.Nombre);
+            datos.SetearParametro("@Descripcion", articulo.Descripcion);
+            datos.SetearParametro("@IdMarca", articulo.Marca.Id);
+            datos.SetearParametro("@IdCategoria", articulo.Categoria.Id);
+            datos.SetearParametro("@Precio", articulo.Precio);
+            datos.SetearParametro("@Id", articulo.Id);
 
-
-                    List<string> urlsActualesDB = ObtenerUrlsActuales(datos, articuloEditar.Id);
-
-                    List<string> urlsNuevasEntidad = new List<string>();
-                    if (articuloEditar.Imagenes != null)
-                    {
-                        foreach (var imagen in articuloEditar.Imagenes)
-                        {
-                            urlsNuevasEntidad.Add(imagen.Url);
-                        }
-                    }
-
-                    List<string> urlsAEliminar = new List<string>();
-                    foreach (string urlDB in urlsActualesDB)
-                    {
-                        // Si la url que está en la DB NO está en la nueva lista, se agrega para eliminarla
-                        if (!urlsNuevasEntidad.Contains(urlDB))
-                        {
-                            urlsAEliminar.Add(urlDB);
-                        }
-                    }
-
-                    List<string> urlsAInsertar = new List<string>();
-                    foreach (string urlNueva in urlsNuevasEntidad)
-                    {
-                        // Si la URL nueva NO está en la DB, la guardamos
-                        if (!urlsActualesDB.Contains(urlNueva))
-                        {
-                            urlsAInsertar.Add(urlNueva);
-                        }
-                    }
-
-                    if (urlsAEliminar.Count > 0)
-                    {
-                        // generamos una lista de placeholders para las urls, así evitamos interpolar porque es peligroso por el sql injection
-                        List<string> placeholders = new List<string>();
-                        for (int i = 0; i < urlsAEliminar.Count; i++)
-                        {
-                            placeholders.Add($"@url{i}");
-                        }
-                        string listaPlaceholders = string.Join(",", placeholders);
-
-                        datos.LimpiarParametros();
-                        datos.DefinirConsulta($"DELETE FROM IMAGENES WHERE IdArticulo = @IdArticulo AND ImagenUrl IN ({listaPlaceholders})");
-
-                        // seteamos los parámetros de manera segura
-                        datos.SetearParametro("@IdArticulo", articuloEditar.Id);
-                        for (int i = 0; i < urlsAEliminar.Count; i++)
-                        {
-                            datos.SetearParametro($"@url{i}", urlsAEliminar[i]);
-                        }
-
-                        datos.EjecutarAccion();
-                    }
-
-                    if (urlsAInsertar.Count > 0)
-                    {
-                        datos.DefinirConsulta("INSERT INTO IMAGENES (IdArticulo, ImagenUrl) VALUES (@IdArticulo, @ImagenUrl)");
-
-                        foreach (string url in urlsAInsertar)
-                        {
-                            datos.LimpiarParametros();
-                            datos.SetearParametro("@IdArticulo", articuloEditar.Id);
-                            datos.SetearParametro("@ImagenUrl", url);
-                            datos.EjecutarAccion();
-                        }
-                    }
-
-                    datos.ConfirmarTransaccion();
-                }
-                catch (Exception)
-                {
-                    datos.RollbackTransaccion();
-                    throw;
-                }
-            }
+            datos.EjecutarAccion();
         }
 
-        private List<string> ObtenerUrlsActuales(AccesoDatos datos, int idArticulo)
+        public List<string> ObtenerUrlsActuales(int idArticulo)
         {
-            List<string> urls = new List<string>();
-
-            datos.LimpiarParametros();
-            datos.DefinirConsulta("SELECT ImagenUrl FROM IMAGENES WHERE IdArticulo = @IdArticulo");
-            datos.SetearParametro("@IdArticulo", idArticulo);
-
-            SqlDataReader lector = null;
-            try
+            using (var datos = new AccesoDatos())
             {
-                lector = datos.EjecutarConsulta();
-                while (lector.Read())
+                datos.LimpiarParametros();
+                datos.DefinirConsulta("SELECT ImagenUrl FROM IMAGENES WHERE IdArticulo = @IdArticulo");
+                datos.SetearParametro("@IdArticulo", idArticulo);
+
+                List<string> urls = new List<string>();
+                using (var lector = datos.EjecutarConsulta())
                 {
-                    urls.Add(lector.GetString(0));
+                    while (lector.Read())
+                    {
+                        urls.Add(lector.GetString(lector.GetOrdinal("ImagenUrl")));
+                    }
                 }
+                return urls;
             }
-            finally
-            {
-                if (lector != null && !lector.IsClosed)
-                {
-                    lector.Close();
-                }
-            }
-            return urls;
         }
+
+        private void SincronizarImagenes(AccesoDatos datos, int idArticulo, List<string> urlsNuevas)
+        {
+            List<string> urlsActualesDB = ObtenerUrlsActuales(idArticulo);
+
+            List<string> urlsAEliminar = new List<string>();
+            foreach (string urlDB in urlsActualesDB)
+            {
+                bool encontrada = false;
+                foreach (string urlNueva in urlsNuevas)
+                {
+                    if (urlDB == urlNueva)
+                    {
+                        encontrada = true;
+                        break;
+                    }
+                }
+                if (!encontrada)
+                    urlsAEliminar.Add(urlDB);
+            }
+
+
+            List<string> urlsAInsertar = new List<string>();
+            foreach (string urlNueva in urlsNuevas)
+            {
+                bool encontrada = false;
+                foreach (string urlDB in urlsActualesDB)
+                {
+                    if (urlNueva == urlDB)
+                    {
+                        encontrada = true;
+                        break;
+                    }
+                }
+                if (!encontrada)
+                    urlsAInsertar.Add(urlNueva);
+            }
+
+
+            if (urlsAEliminar.Count > 0)
+            {
+                List<string> placeholders = new List<string>();
+                for (int i = 0; i < urlsAEliminar.Count; i++)
+                {
+                    placeholders.Add("@url" + i);
+                }
+
+                string listaPlaceholders = string.Join(",", placeholders);
+
+                datos.LimpiarParametros();
+                datos.DefinirConsulta($"DELETE FROM IMAGENES WHERE IdArticulo = @IdArticulo AND ImagenUrl IN ({listaPlaceholders})");
+                datos.SetearParametro("@IdArticulo", idArticulo);
+
+                for (int i = 0; i < urlsAEliminar.Count; i++)
+                {
+                    datos.SetearParametro("@url" + i, urlsAEliminar[i]);
+                }
+
+                datos.EjecutarAccion();
+            }
+
+
+            if (urlsAInsertar.Count > 0)
+            {
+                datos.DefinirConsulta("INSERT INTO IMAGENES (IdArticulo, ImagenUrl) VALUES (@IdArticulo, @ImagenUrl)");
+                foreach (string url in urlsAInsertar)
+                {
+                    datos.LimpiarParametros();
+                    datos.SetearParametro("@IdArticulo", idArticulo);
+                    datos.SetearParametro("@ImagenUrl", url);
+                    datos.EjecutarAccion();
+                }
+            }
+        }
+
+
 
         public void Eliminar(int idArticulo)
         {
             using (AccesoDatos datos = new AccesoDatos())
             {
-
                 try
                 {
-                   datos.IniciarTransaccion();
+                    datos.IniciarTransaccion();
 
                     datos.LimpiarParametros();
                     datos.DefinirConsulta("DELETE FROM IMAGENES WHERE IdArticulo = @IdArticulo");
@@ -441,33 +440,34 @@ namespace CatalogoArticulos.Datos.Repositorios
             }
         }
 
-        public void GuardarImagenes(int idArticulo, List<string> urls)
+        public void GuardarImagenes(int idArticulo, List<Imagen> nuevasImagenes)
         {
             using (AccesoDatos datos = new AccesoDatos())
             {
                 try
                 {
+                    datos.IniciarTransaccion();
                     datos.DefinirConsulta("INSERT INTO IMAGENES (IdArticulo, ImagenUrl) VALUES (@IdArticulo, @ImagenUrl)");
                     datos.SetearParametro("@IdArticulo", idArticulo);
 
-                    foreach (string url in urls)
+                    foreach (Imagen imagen in nuevasImagenes)
                     {
                         datos.LimpiarParametros();
 
-
                         datos.SetearParametro("@IdArticulo", idArticulo); // volvemos a setear el id 
-                        datos.SetearParametro("@ImagenUrl", url);
+                        datos.SetearParametro("@ImagenUrl", imagen.Url);
 
                         datos.EjecutarAccion();
                     }
+                    datos.ConfirmarTransaccion();
                 }
                 catch (Exception)
                 {
+                    datos.RollbackTransaccion();
                     throw;
                 }
             }
         }
-
 
         public bool ExisteCodigoArticulo(string codigo)
         {
@@ -480,7 +480,7 @@ namespace CatalogoArticulos.Datos.Repositorios
 
                     int existe = datos.EjecutarAccionEscalar();
 
-                   return existe != 0; 
+                    return existe != 0;
                 }
                 catch (Exception)
                 {
@@ -488,6 +488,28 @@ namespace CatalogoArticulos.Datos.Repositorios
                 }
             }
         }
+
+        public bool ExisteIdArticulo(int idArticulo)
+        {
+            using (AccesoDatos datos = new AccesoDatos())
+            {
+                try
+                {
+                    datos.DefinirConsulta("SELECT COUNT(1) FROM ARTICULOS WHERE Id = @Id");
+                    datos.SetearParametro("@Id", idArticulo);
+
+                    int existe = datos.EjecutarAccionEscalar();
+
+                    return existe != 0;
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+            }
+        }
+
+
 
     }
 }

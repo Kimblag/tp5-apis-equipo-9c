@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace CatalogoArticulos.API.DTOs
+namespace CatalogoArticulos.DTOs
 {
     public class ArticuloGuardarDTO
     {
@@ -12,7 +12,7 @@ namespace CatalogoArticulos.API.DTOs
         public string Descripcion { get; set; } = string.Empty;
         public int IdMarca { get; set; }
         public int IdCategoria { get; set; }
-        public decimal Precio { get; set; }
+        public decimal? Precio { get; set; }
         public List<string> UrlImagenes { get; set; }
     }
 }

@@ -1,6 +1,7 @@
-﻿using CatalogoArticulos.API.DTOs;
+﻿using CatalogoArticulos.Dominio.Entidades;
+using CatalogoArticulos.DTOs;
 using CatalogoArticulos.Negocio;
-using CatalogoProductos.API.DTOs;
+using CatalogoArticulos.API.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -8,8 +9,10 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using CatalogoArticulo.Comun.Helpers;
+using CatalogoArticulo.Comun.Mappers;
 
-namespace CatalogoProductos.API.Controllers
+namespace CatalogoArticulos.API.Controllers
 {
     public class ArticulosController : ApiController
     {
@@ -28,18 +31,21 @@ namespace CatalogoProductos.API.Controllers
         }
 
         // POST: api/Articulos
-        public IHttpActionResult Post([FromBody] ArticuloGuardarDTO articulo)
+        public IHttpActionResult Post([FromBody] ArticuloGuardarDTO nuevoArticuloDTO)
         {
             try
             {
+                ValidadorDTO.ValidarArticuloGuardarDTO(nuevoArticuloDTO);
+                Articulo articulo = MapperArticulo.ToDominio(nuevoArticuloDTO);
                 int idNuevoArticulo = _negocioArticulo.Guardar(articulo);
+                
                 var respuestaApi = new ApiResponse<int>
                 {
                     Status = 201,
                     Mensaje = "Artículo creado exitosamente.",
                     Resultado = idNuevoArticulo
                 };
-                return Created($"{Request.RequestUri}/{idNuevoArticulo.ToString()}", respuestaApi);
+                return Created($"{Request.RequestUri}/{idNuevoArticulo}", respuestaApi);
             }
             catch (InvalidOperationException ex)
             {
@@ -49,6 +55,35 @@ namespace CatalogoProductos.API.Controllers
             {
                 return InternalServerError(ex);
             }
+        }
+
+        // POST: api/Articulos/5/Imagenes
+        [Route("api/Articulos/{idArticulo}/Imagenes")]
+        public IHttpActionResult Post(int idArticulo, [FromBody] ArticuloAgregarImagenesDTO imagenesDTO)
+        {
+            try
+            {
+                ValidadorDTO.ValidarArticuloAgregarImagenesDTO(imagenesDTO);
+                List<Imagen> nuevasImagenes = MapperArticulo.ToDominio(imagenesDTO);
+                _negocioArticulo.GuardarImagenes(idArticulo, nuevasImagenes);
+                
+                var respuestaApi = new ApiResponse<int?>
+                {
+                    Status = 201,
+                    Mensaje = "Imágenes agregadas exitosamente.",
+                    Resultado = null
+                };
+                return Created(Request.RequestUri, respuestaApi);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+
         }
 
         // PUT: api/Articulos/5
