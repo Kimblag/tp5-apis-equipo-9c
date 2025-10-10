@@ -19,9 +19,25 @@ namespace CatalogoArticulos.API.Controllers
         private readonly NegocioArticulo _negocioArticulo = new NegocioArticulo();
 
         // GET: api/Articulos
-        public IEnumerable<string> Get()
+        public IHttpActionResult Get()
         {
-            return new string[] { "value1", "value2" };
+            try
+            {
+                List<Articulo> listaArticulos = _negocioArticulo.Listar();
+
+                var respuestaApi = new ApiResponse<List<ArticuloListadoDTO>>
+                {
+                    Status = 200,
+                    Mensaje = null,
+                    Resultado = MapperArticulo.ToDominio(listaArticulos)
+                };
+
+                return Ok(respuestaApi);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
         }
 
         // GET: api/Articulos/5
@@ -38,7 +54,7 @@ namespace CatalogoArticulos.API.Controllers
                 ValidadorDTO.ValidarArticuloGuardarDTO(nuevoArticuloDTO);
                 Articulo articulo = MapperArticulo.ToDominio(nuevoArticuloDTO);
                 int idNuevoArticulo = _negocioArticulo.Guardar(articulo);
-                
+
                 var respuestaApi = new ApiResponse<int>
                 {
                     Status = 201,
@@ -66,7 +82,7 @@ namespace CatalogoArticulos.API.Controllers
                 ValidadorDTO.ValidarArticuloAgregarImagenesDTO(imagenesDTO);
                 List<Imagen> nuevasImagenes = MapperArticulo.ToDominio(imagenesDTO);
                 _negocioArticulo.GuardarImagenes(idArticulo, nuevasImagenes);
-                
+
                 var respuestaApi = new ApiResponse<int?>
                 {
                     Status = 201,

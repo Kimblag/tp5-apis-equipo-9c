@@ -19,12 +19,13 @@ namespace CatalogoArticulos.Datos.Repositorios
             {
                 try
                 {
+                    // Se recomienda LEFT JOIN para asegurar que el artículo se liste aunque no tenga imágenes 
                     datos.DefinirConsulta(@"
                         SELECT AR.Id, AR.Codigo, AR.Nombre, AR.Descripcion, AR.Precio,
                                IM.Id AS IdImagen, IM.ImagenUrl, 
-                               CAT.Descripcion AS Categoria, MARC.Descripcion AS Marca
+                               CAT.Id AS IdCategoria, CAT.Descripcion AS Categoria, 
+                               MARC.Id AS IdMarca, MARC.Descripcion AS Marca
                         FROM ARTICULOS AR
-                        -- Se recomienda LEFT JOIN para asegurar que el artículo se liste aunque no tenga imágenes
                         LEFT JOIN IMAGENES IM ON AR.Id = IM.IdArticulo 
                         INNER JOIN CATEGORIAS CAT ON AR.IdCategoria = CAT.Id
                         INNER JOIN MARCAS MARC ON AR.IdMarca = MARC.Id
@@ -53,20 +54,20 @@ namespace CatalogoArticulos.Datos.Repositorios
                                     Descripcion = lector.IsDBNull(lector.GetOrdinal("Descripcion")) ? null : lector.GetString(lector.GetOrdinal("Descripcion")),
                                     Precio = lector.IsDBNull(lector.GetOrdinal("Precio")) ? 0 : lector.GetDecimal(lector.GetOrdinal("Precio")),
 
-                                    Categoria = new Categoria { Descripcion = lector.GetString(lector.GetOrdinal("Categoria")) },
-                                    Marca = new Marca { Descripcion = lector.GetString(lector.GetOrdinal("Marca")) },
+                                    Categoria = new Categoria { Id = lector.GetInt32(lector.GetOrdinal("IdCategoria")), Descripcion = lector.GetString(lector.GetOrdinal("Categoria")) },
+                                    Marca = new Marca { Id = lector.GetInt32(lector.GetOrdinal("IdMarca")), Descripcion = lector.GetString(lector.GetOrdinal("Marca")) },
                                     Imagenes = new List<Imagen>()
                                 };
 
                                 articulos.Add(articuloActual);
                             }
 
-                            if (!lector.IsDBNull(lector.GetOrdinal("ImageUrl")))
+                            if (!lector.IsDBNull(lector.GetOrdinal("ImagenUrl")))
                             {
                                 articuloActual.Imagenes.Add(
                                     new Imagen
                                     {
-                                        Id = lector.GetInt32(lector.GetOrdinal("IdImagen")),
+                                        Id = lector.GetInt32(lector.GetOrdinal("Id")),
                                         Url = lector.GetString(lector.GetOrdinal("ImagenUrl"))
                                     });
                             }
@@ -410,8 +411,6 @@ namespace CatalogoArticulos.Datos.Repositorios
             }
         }
 
-
-
         public void Eliminar(int idArticulo)
         {
             using (AccesoDatos datos = new AccesoDatos())
@@ -508,8 +507,6 @@ namespace CatalogoArticulos.Datos.Repositorios
                 }
             }
         }
-
-
 
     }
 }

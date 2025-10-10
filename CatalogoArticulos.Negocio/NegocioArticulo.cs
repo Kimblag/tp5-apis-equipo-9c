@@ -98,5 +98,11 @@ namespace CatalogoArticulos.Negocio
         }
 
 
+        public List<Articulo> Listar()
+        {
+            return _repositorioArticulo.Listar();
+        }
+
+
     }
 }
