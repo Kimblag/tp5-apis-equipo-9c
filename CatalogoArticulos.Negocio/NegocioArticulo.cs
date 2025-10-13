@@ -103,6 +103,52 @@ namespace CatalogoArticulos.Negocio
             return _repositorioArticulo.Listar();
         }
 
+        public void Modificar(Articulo articuloModificado)
+        {
+            ValidarReglasNegocioArticuloModificacion(articuloModificado);
+
+            try
+            {
+                _repositorioArticulo.Modificar(articuloModificado);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
+        private void ValidarReglasNegocioArticuloModificacion(Articulo articulo)
+        {
+            if (!_repositorioArticulo.ExisteIdArticulo(articulo.Id))
+                throw new InvalidOperationException($"El artículo con ID {articulo.Id} no existe y no puede ser modificado.");
+
+            if (!_repositorioMarca.Existe(articulo.Marca.Id))
+                throw new InvalidOperationException("La marca indicada no existe.");
+
+            if (!_repositorioCategoria.Existe(articulo.Categoria.Id))
+                throw new InvalidOperationException("La categoría indicada no existe.");
+
+            if (_repositorioArticulo.ExisteCodigoArticulo(articulo.Codigo, articulo.Id))
+                throw new InvalidOperationException("Ya existe otro artículo con el código indicado.");
+        }
+
+        public void Eliminar(int idArticulo)
+        {
+ 
+            if (!_repositorioArticulo.ExisteIdArticulo(idArticulo))
+                throw new InvalidOperationException($"El artículo con ID {idArticulo} no existe y no puede ser eliminado.");
+
+            try
+            {
+                _repositorioArticulo.Eliminar(idArticulo);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
 
     }
 }

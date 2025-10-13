@@ -102,14 +102,56 @@ namespace CatalogoArticulos.API.Controllers
 
         }
 
-        // PUT: api/Articulos/5
-        public void Put(int id, [FromBody] string value)
+        // PUT: api/Articulos/
+        public IHttpActionResult Put(int id, [FromBody] ArticuloGuardarDTO articuloModificadoDTO)
         {
+            try
+            {
+
+
+                ValidadorDTO.ValidarArticuloGuardarDTO(articuloModificadoDTO); 
+                Articulo articulo = MapperArticulo.ToDominio(articuloModificadoDTO);
+                articulo.Id = id;
+                _negocioArticulo.Modificar(articulo);
+
+                var respuestaApi = new ApiResponse<int?>
+                {
+                    Status = 200,
+                    Mensaje = "Artículo modificado exitosamente.",
+                    Resultado = null 
+                };
+                return Ok(respuestaApi);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message); 
+            }
+            catch (Exception ex)
+            {
+
+                return InternalServerError(ex); 
+            }
         }
 
         // DELETE: api/Articulos/5
-        public void Delete(int id)
+        public IHttpActionResult Delete(int id)
         {
+            try
+            {
+                _negocioArticulo.Eliminar(id);
+
+
+                return StatusCode(System.Net.HttpStatusCode.NoContent);
+            }
+            catch (InvalidOperationException ex)
+            {
+
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex); 
+            }
         }
     }
 }

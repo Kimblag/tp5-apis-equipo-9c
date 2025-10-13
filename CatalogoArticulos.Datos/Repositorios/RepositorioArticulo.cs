@@ -508,5 +508,29 @@ namespace CatalogoArticulos.Datos.Repositorios
             }
         }
 
+        
+        public bool ExisteCodigoArticulo(string codigo, int idExcluir)
+        {
+            using (AccesoDatos datos = new AccesoDatos())
+            {
+                try
+                { 
+                    datos.DefinirConsulta("SELECT COUNT(1) FROM ARTICULOS WHERE UPPER(Codigo) = UPPER(@Codigo) AND Id <> @IdExcluir");
+                    datos.SetearParametro("@Codigo", codigo.ToUpper());
+                    datos.SetearParametro("@IdExcluir", idExcluir);
+
+                    int existe = datos.EjecutarAccionEscalar();
+
+                    return existe != 0;
+                }
+                catch (Exception)
+                {
+                    throw;
+                }
+            }
+        }
+
+
+
     }
 }
