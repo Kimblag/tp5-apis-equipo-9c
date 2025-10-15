@@ -148,7 +148,10 @@ namespace CatalogoArticulos.Negocio
                 throw;
             }
         }
-
+        public Articulo ListarPorId(int id)
+        {
+            return _repositorioArticulo.ListarPorId(id);
+        }
 
     }
 }

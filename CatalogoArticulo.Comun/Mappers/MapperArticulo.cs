@@ -87,5 +87,30 @@ namespace CatalogoArticulo.Comun.Mappers
 
             return listadoArticulosDto;
         }
+
+        public static Articulo ToDominio(ArticuloActualizarDTO dto)
+        {
+            var articulo = new Articulo
+            {
+                Codigo = dto.Codigo,
+                Nombre = dto.Nombre,
+                Descripcion = dto.Descripcion,
+                Precio = dto.Precio,
+                Marca = new Marca { Id = dto.IdMarca },
+                Categoria = new Categoria { Id = dto.IdCategoria },
+                Imagenes = new List<Imagen>() 
+            };
+
+            
+            if (dto.UrlImagenes != null)
+            {
+                foreach (var url in dto.UrlImagenes)
+                {      
+                    articulo.Imagenes.Add(new Imagen { Url = url });
+                }
+            }
+
+            return articulo;
+        }
     }
 }

@@ -529,7 +529,64 @@ namespace CatalogoArticulos.Datos.Repositorios
                 }
             }
         }
+        public Articulo ListarPorId(int id)
+        {
+            Articulo articulo = null;
+            using (AccesoDatos datos = new AccesoDatos())
+            {
+                try
+                {
+                    datos.DefinirConsulta(@"
+                SELECT AR.Id, AR.Codigo, AR.Nombre, AR.Descripcion, AR.Precio,
+                       IM.Id AS IdImagen, IM.ImagenUrl, 
+                       CAT.Id AS IdCategoria, CAT.Descripcion AS Categoria, 
+                       MARC.Id AS IdMarca, MARC.Descripcion AS Marca
+                FROM ARTICULOS AR
+                LEFT JOIN IMAGENES IM ON AR.Id = IM.IdArticulo 
+                INNER JOIN CATEGORIAS CAT ON AR.IdCategoria = CAT.Id
+                INNER JOIN MARCAS MARC ON AR.IdMarca = MARC.Id
+                WHERE AR.Id = @id
+            ");
+                    datos.SetearParametro("@id", id);
 
+                    using (SqlDataReader lector = datos.EjecutarConsulta())
+                    {
+                        while (lector.Read())
+                        {
+                            if (articulo == null)
+                            {
+                                articulo = new Articulo
+                                {
+                                    Id = lector.GetInt32(lector.GetOrdinal("Id")),
+                                    Codigo = lector.IsDBNull(lector.GetOrdinal("Codigo")) ? null : lector.GetString(lector.GetOrdinal("Codigo")),
+                                    Nombre = lector.GetString(lector.GetOrdinal("Nombre")),
+                                    Descripcion = lector.IsDBNull(lector.GetOrdinal("Descripcion")) ? null : lector.GetString(lector.GetOrdinal("Descripcion")),
+                                    Precio = lector.IsDBNull(lector.GetOrdinal("Precio")) ? 0 : lector.GetDecimal(lector.GetOrdinal("Precio")),
+                                    Categoria = new Categoria { Id = lector.GetInt32(lector.GetOrdinal("IdCategoria")), Descripcion = lector.GetString(lector.GetOrdinal("Categoria")) },
+                                    Marca = new Marca { Id = lector.GetInt32(lector.GetOrdinal("IdMarca")), Descripcion = lector.GetString(lector.GetOrdinal("Marca")) },
+                                    Imagenes = new List<Imagen>()
+                                };
+                            }
+
+                            if (!lector.IsDBNull(lector.GetOrdinal("ImagenUrl")))
+                            {
+                                articulo.Imagenes.Add(
+                                    new Imagen
+                                    {
+                                        Id = lector.GetInt32(lector.GetOrdinal("IdImagen")),
+                                        Url = lector.GetString(lector.GetOrdinal("ImagenUrl"))
+                                    });
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+            return articulo;
+        }
 
 
     }

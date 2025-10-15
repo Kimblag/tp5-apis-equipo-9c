@@ -43,5 +43,37 @@ namespace CatalogoArticulo.Comun.Helpers
                     throw new InvalidOperationException($"La URL {url} no es válida.");
             }
         }
+        public static void ValidarArticuloActualizarDTO(ArticuloActualizarDTO dto)
+        {
+            if (dto == null)
+            {
+                throw new ArgumentNullException(nameof(dto), "El objeto del artículo no puede ser nulo.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Codigo))
+            {
+                throw new InvalidOperationException("El código del artículo es obligatorio.");
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Nombre))
+            {
+                throw new InvalidOperationException("El nombre del artículo es obligatorio.");
+            }
+
+            if (dto.Precio.HasValue && dto.Precio.Value < 0)
+            {
+                throw new InvalidOperationException("El precio no puede ser negativo.");
+            }
+
+            if (dto.IdMarca <= 0)
+            {
+                throw new InvalidOperationException("El Id de la marca no es válido.");
+            }
+
+            if (dto.IdCategoria <= 0)
+            {
+                throw new InvalidOperationException("El Id de la categoría no es válido.");
+            }
+        }
     }
 }

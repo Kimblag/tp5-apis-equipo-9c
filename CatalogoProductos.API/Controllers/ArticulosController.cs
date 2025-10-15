@@ -103,35 +103,61 @@ namespace CatalogoArticulos.API.Controllers
         }
 
         // PUT: api/Articulos/
-        public IHttpActionResult Put(int id, [FromBody] ArticuloGuardarDTO articuloModificadoDTO)
+        public IHttpActionResult Put(int id, [FromBody] ArticuloActualizarDTO articuloModificadoDTO)
         {
             try
             {
+                if (articuloModificadoDTO == null)
+                {
+                    return BadRequest("El cuerpo de la solicitud no puede estar vacío.");
+                }
+                // Esto captura errores de conversión como "letras en un campo de número".
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
 
+                ValidadorDTO.ValidarArticuloActualizarDTO(articuloModificadoDTO);
+                Articulo articuloActual = _negocioArticulo.ListarPorId(id);
 
-                ValidadorDTO.ValidarArticuloGuardarDTO(articuloModificadoDTO); 
-                Articulo articulo = MapperArticulo.ToDominio(articuloModificadoDTO);
-                articulo.Id = id;
-                _negocioArticulo.Modificar(articulo);
+                if (articuloActual == null)
+                {
+                    return NotFound();
+                }
+
+                articuloActual.Codigo = articuloModificadoDTO.Codigo;
+                articuloActual.Nombre = articuloModificadoDTO.Nombre;
+                articuloActual.Descripcion = articuloModificadoDTO.Descripcion;
+                articuloActual.Precio = articuloModificadoDTO.Precio;
+                articuloActual.Marca.Id = articuloModificadoDTO.IdMarca;
+                articuloActual.Categoria.Id = articuloModificadoDTO.IdCategoria;
+
+                if (articuloModificadoDTO.UrlImagenes != null)
+                {
+                    articuloActual.Imagenes = articuloModificadoDTO.UrlImagenes
+                        .Select(url => new Imagen { Url = url }).ToList();
+                }
+
+                _negocioArticulo.Modificar(articuloActual);
 
                 var respuestaApi = new ApiResponse<int?>
                 {
                     Status = 200,
                     Mensaje = "Artículo modificado exitosamente.",
-                    Resultado = null 
+                    Resultado = null
                 };
                 return Ok(respuestaApi);
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ex.Message); 
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-
-                return InternalServerError(ex); 
+                return InternalServerError(ex);
             }
         }
+
 
         // DELETE: api/Articulos/5
         public IHttpActionResult Delete(int id)
