@@ -179,5 +179,36 @@ namespace CatalogoArticulos.API.Controllers
                 return InternalServerError(ex); 
             }
         }
+
+        // GET: api/Articulos/Buscar?criterio=
+        [HttpGet]
+        [Route("api/Articulos/Buscar")]
+        public IHttpActionResult Buscar([FromUri] string criterio)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(criterio))
+                {
+                    return BadRequest("El criterio de búsqueda no puede estar vacío.");
+                }
+                List<Articulo> listaArticulos = _negocioArticulo.Buscar(criterio);
+
+
+                List<ArticuloListadoDTO> resultadoDTO = MapperArticulo.ToDominio(listaArticulos);
+
+                var respuestaApi = new ApiResponse<List<ArticuloListadoDTO>>
+                {
+                    Status = 200,
+                    Mensaje = "Resultados de la búsqueda",
+                    Resultado = resultadoDTO
+                };
+
+                return Ok(respuestaApi);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
+        }
     }
 }

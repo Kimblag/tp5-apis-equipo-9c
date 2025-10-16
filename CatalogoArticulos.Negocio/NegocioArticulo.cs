@@ -152,6 +152,9 @@ namespace CatalogoArticulos.Negocio
         {
             return _repositorioArticulo.ListarPorId(id);
         }
-
+        public List<Articulo> Buscar(string criterio)
+        {
+            return _repositorioArticulo.Buscar(criterio);
+        }
     }
 }
