@@ -41,9 +41,31 @@ namespace CatalogoArticulos.API.Controllers
         }
 
         // GET: api/Articulos/5
-        public string Get(int id)
+        public IHttpActionResult Get(int id)
         {
-            return "value";
+            try
+            {
+                Articulo articulo = _negocioArticulo.ListarPorId(id);
+
+                if (articulo == null)
+                {
+                    return NotFound(); // Devuelve un error 404 si no se encuentra
+                }
+
+                ArticuloListadoDTO articuloDTO = MapperArticulo.ToDominio(new List<Articulo> { articulo }).First();
+
+                var respuestaApi = new ApiResponse<ArticuloListadoDTO>
+                {
+                    Status = 200,
+                    Mensaje = "Artículo encontrado.",
+                    Resultado = articuloDTO
+                };
+                return Ok(respuestaApi);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
         }
 
         // POST: api/Articulos
